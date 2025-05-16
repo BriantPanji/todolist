@@ -3,7 +3,7 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
-// #include <algorithm>
+#include <algorithm>
 #include <fstream>
 #include <ctime> 
 #include <windows.h>
@@ -73,6 +73,8 @@ class TodoList {
         bool formAddTask();
 
         void printDebug();
+
+        bool deleteTask();
 
 };
 
@@ -384,6 +386,90 @@ char TodoList::getChoice() {
     return choice;
 }
 
+// Fungsi untuk menghapus tugas (Feri)
+bool TodoList::deleteTask(){
+    string temp;
+    int id;
+
+    printBorder('h');
+    printCenter("HAPUS TUGAS");
+    printBorder('i');
+    printCenter("Ketik 'x' untuk membatalkan menghapus tugas.");
+    printBorder('i', true);
+
+    // viewTasks(); // Tampilkan daftar tugas terlebih dahulu
+
+    printText("Masukkan ID tugas yang ingin dihapus.");
+    printAsk("ID: ");
+    getline(cin, temp);
+
+    // Validasi x
+    if (temp == "x" || temp == "X") {
+        printBorder('h');
+        printText("Batal menghapus tugas.");
+        printBorder('f');
+        return true;
+    }
+// Validasi ID dalam bentuk angka
+    try {
+        id = stoi (temp);
+    } catch (...){
+        printBorder('h');
+        printText("ERR: ID tidak valid, harus berupa angka. Ulangi lagi!");
+        printBorder('f');
+        return deleteTask();
+    }
+
+    printBorder('i', true);
+
+    // Cari id di listTasks
+    auto it = find_if(listTasks.begin(), listTasks.end(), [&](Task& t){
+        return t.id == id;
+    });
+
+    if ( it == listTasks.end()){
+        printBorder('h');
+        printText("ERR: ID tugas tidak ditemukan. Ulangi lagi!");
+        printBorder('f');
+        return deleteTask();
+    }
+
+    // Detail tugas yg mau dihapus
+    printBorder('h');
+    printText("Tugas ditemukan:");
+    printText("ID: " + to_string(it->id));
+    printText("Judul: " + it->title);   
+    printText("Deskripsi: " + it->desc);
+    printText("Tenggat: " + getTanggal(it->deadline));
+    printText("Dibuat pada: " + getTanggal(it->createdAt)); 
+    printText("Status: " + string(it->isDone ? "Selesai" : "Belum Selesai"));
+    printBorder('i', true);
+    printBorder('i');
+    printText("Yakin ingin menghapus tugas ini? (Y/N)");
+    printAsk("Pilihan: ");
+    getline(cin, temp);
+    printBorder('i', true);
+
+    if (temp == "y" || temp == "Y") {
+        listTasks.erase(it);
+        saveTasks();
+        printBorder('h');
+        printText("Tugas berhasil dihapus.");
+        printBorder('f');
+        return true;
+    } else if (temp == "n" || temp == "N") {
+        printBorder('h');
+        printText("Tugas batal dihapus.");
+        printBorder('f');
+        return true;
+    } else {
+        printBorder('h');
+        printText("ERR: Input tidak valid. Harus 'Y' atau 'N'.");
+        printBorder('f');
+        return deleteTask(); 
+    }
+}
+
 bool TodoList::start() {
     printHeader();
     char choice = getChoice();
@@ -397,6 +483,9 @@ bool TodoList::start() {
                 return true;
             case '1': 
                 formAddTask();
+                break;
+            case '6':
+                deleteTask();
                 break;
         }
         system("pause");
