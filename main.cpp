@@ -30,10 +30,9 @@ struct Task {
 // tampilkan semua tugas -> Sutanto
 // tampilkan tugas terlambat -> Sutanto
 // selesaikan tugas -> Andreas
-// tampilkan to-do selesai -> Sutanto
+// tampilkan to-do selesai -> Andreas
 // detail tugas -> Delrico
 // hapus tugas -> Feri
-// hapus tugas
 // edit tugas -> Delrico
 // Exit
 
@@ -68,6 +67,7 @@ class TodoList {
 
         bool addTask(string title, string desc, time_t deadline);
         void printAllTasks();
+        void printLateTasks();
 
         bool start();
         bool formAddTask();
@@ -120,6 +120,7 @@ void TodoList::printCenter(string text) {
 }
 
 void TodoList::printHeader() {
+    cout << left;
     printBorder('h');
     printCenter("TODO LIST");
     printBorder('i');
@@ -264,6 +265,30 @@ void TodoList::printAllTasks() {
     }
     cout << "╚════╧══════════════════════════════════════════════╝\n";
 }
+
+void TodoList::printLateTasks() {
+    printBorder('h');
+    printCenter("TUGAS TERLAMBAT");
+    cout << "╠════╤══════════════════════════════════════════════╣\n";
+    cout << "║ " << setw(2) << "No" << " │ "
+        << setw(29) << left << "Tugas"
+        << " " << right << setw(14) << "Tenggat" << " ║\n";
+    cout << "╟────┼──────────────────────────────────────────────╢\n";
+    bool found = false;
+    for (const auto& task : listTasks) {
+        if (!task.isDone && task.deadline < currentTime) {
+            found = true;
+            cout << "║ " << setw(2) << setfill('0') << task.id << " │ "
+                << setfill(' ') << setw(29) << left << truncStr(task.title, 29)
+                << " " << right << setw(14) << getTanggal(task.deadline) << " ║\n";
+        }
+    }
+    if (!found) {
+        cout << "║ Tidak ada tugas yang terlambat.                  ║\n";
+    }
+    cout << "╚════╧══════════════════════════════════════════════╝\n";
+}
+
 
 void TodoList::printDebug() {
     for (auto i = listTasks.begin(); i != listTasks.end(); ++i) {
@@ -486,6 +511,12 @@ bool TodoList::start() {
                 break;
             case '6':
                 deleteTask();
+                break;
+            case '2':
+                printAllTasks();
+                break;
+            case '4':
+                printLateTasks();
                 break;
         }
         system("pause");
