@@ -428,7 +428,7 @@ void TodoList::printAllTasks()
     cout << "╠════╤══════════════════════════════════════════════╣\n";
     cout << "║ " << setw(2) << "No" << " │ "
          << setw(29) << left << "Tugas"
-         << " " << right << setw(14) << "Tenggat" << " ║\n";
+         << " " << right << setw(14) << "Tenggat" << " ║" << left << endl;
     cout << "╟────┼──────────────────────────────────────────────╢\n";
     for (auto i = listTasks.begin(); i != listTasks.end(); ++i) {
         cout << "║ " << right << setw(2) << setfill('0') << i->id << " │ "
@@ -597,18 +597,19 @@ char TodoList::getChoice()
 bool TodoList::deleteTask(){
     string temp;
     int id;
-
+    
+    printAllTasks(); // Tampilkan daftar tugas terlebih dahulu
+    
     printBorder('h');
     printCenter("HAPUS TUGAS");
     printBorder('i');
     printCenter("Ketik 'x' untuk membatalkan menghapus tugas.");
     printBorder('i', true);
 
-    // viewTasks(); // Tampilkan daftar tugas terlebih dahulu
-
     printText("Masukkan ID tugas yang ingin dihapus.");
     printAsk("ID: ");
     getline(cin, temp);
+    printBorder('f');
 
     // Validasi x
     if (temp == "x" || temp == "X") {
@@ -626,8 +627,6 @@ bool TodoList::deleteTask(){
         printBorder('f');
         return deleteTask();
     }
-
-    printBorder('i', true);
 
     // Cari id di listTasks
     auto it = find_if(listTasks.begin(), listTasks.end(), [&](Task& t){
@@ -655,7 +654,7 @@ bool TodoList::deleteTask(){
     printText("Yakin ingin menghapus tugas ini? (Y/N)");
     printAsk("Pilihan: ");
     getline(cin, temp);
-    printBorder('i', true);
+    printBorder('f', true);
 
     if (temp == "y" || temp == "Y") {
         listTasks.erase(it);
