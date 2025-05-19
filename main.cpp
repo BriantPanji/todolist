@@ -83,6 +83,9 @@ public:
     bool findDetailTask();
     bool deleteTask();
     bool doneTask();
+
+    static bool sortDeadlineASC(const Task &a, const Task &b);
+    static bool sortDeadlineDESC(const Task &a, const Task &b);
 };
 
 int TodoList::sumOfTasks()
@@ -649,7 +652,7 @@ char TodoList::getChoice()
     choice = cin.get();
     cin.ignore();
     printBorder('f');
-    if (choice < '0' || choice > '8')
+    if (choice < '0' || choice > '9')
     {
         printBorder('h');
         printText("Pilihan tidak valid. Silakan coba lagi.");
@@ -660,15 +663,14 @@ char TodoList::getChoice()
     return choice;
 }
 
-
 // Fungsi untuk menghapus tugas (Feri)
 bool TodoList::doneTask()
 {
     string temp;
     int id;
-    
+
     printAllTasks(); // Tampilkan daftar tugas terlebih dahulu
-    
+
     printBorder('h');
     printCenter("SELESAIKAN TUGAS");
     printBorder('i');
@@ -763,9 +765,9 @@ bool TodoList::deleteTask()
 {
     string temp;
     int id;
-    
+
     printAllTasks(); // Tampilkan daftar tugas terlebih dahulu
-    
+
     printBorder('h');
     printCenter("HAPUS TUGAS");
     printBorder('i');
@@ -856,9 +858,9 @@ bool TodoList::findDetailTask()
 {
     string temp;
     int id;
-    
+
     printAllTasks(); // Tampilkan daftar tugas terlebih dahulu
-    
+
     printBorder('h');
     printCenter("DETAIL TUGAS");
     printBorder('i');
@@ -944,6 +946,15 @@ bool TodoList::findDetailTask()
     }
 }
 
+bool TodoList::sortDeadlineASC(const Task &a, const Task &b)
+{
+    return a.deadline < b.deadline;
+}
+bool TodoList::sortDeadlineDESC(const Task &a, const Task &b)
+{
+    return a.deadline > b.deadline;
+}
+
 bool TodoList::start()
 {
     printHeader();
@@ -962,6 +973,25 @@ bool TodoList::start()
             formAddTask();
             break;
         case '2':
+            int pilihan;
+            do
+            {
+                cout << "Mau sort secara apa?" << endl;
+                cout << "1. ASC" << endl;
+                cout << "2. DESC" << endl;
+                cin >> pilihan;
+            } while (pilihan < 0 || pilihan > 2);
+
+            if (pilihan == 1)
+            {
+                sort(listTasks.begin(), listTasks.end(), sortDeadlineASC);
+                std::cout << "Tasks berhasil diurutkan berdasarkan tenggat waktu secara Ascending\n";
+            }
+            else if (pilihan == 2)
+            {
+                sort(listTasks.begin(), listTasks.end(), sortDeadlineDESC);
+                std::cout << "Tasks berhasil diurutkan berdasarkan tenggat waktu secara Descending\n";
+            }
             printAllTasks();
             break;
         case '3':
