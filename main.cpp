@@ -36,6 +36,9 @@ struct Task
 // edit tugas -> Delrico
 // Exit
 
+
+
+
 class TodoList
 {
 private:
@@ -58,6 +61,12 @@ private:
     void printAsk(string text);
     void printCenter(string text);
     string getTanggal(time_t t);
+
+    Task linearSearch(int target);
+
+    int partition(vector<Task> &arr, int low, int high);
+
+    void quickSort(vector<Task> &arr, int low, int high);
 
     time_t currentTime;
 
@@ -83,7 +92,45 @@ public:
     bool findDetailTask();
     bool deleteTask();
     bool doneTask();
+    bool sortTask();
 };
+
+Task TodoList::linearSearch(int target)
+{
+    for (int i = 0; i < listTasks.size(); i++)
+    {
+        if (listTasks.at(i).id == target)
+            return listTasks.at(i);
+    }
+    return { -1, "", "", };
+}
+
+int TodoList::partition(vector<Task> &arr, int low, int high)
+{
+    int pivot = arr[high].deadline;
+    int i = low - 1;
+
+    for (int j = low; j < high; j++) {
+        if (arr[j].deadline < pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+        }
+    }
+
+    i++;
+    swap(arr[i], arr[high]);
+    return i;
+}
+
+void TodoList::quickSort(vector<Task> &arr, int low, int high)
+{
+   if (high <= low) return;
+
+   int pivotIndex = partition(arr, low, high);
+
+   quickSort(arr, low, pivotIndex-1);
+   quickSort(arr, pivotIndex+1, high);
+}
 
 int TodoList::sumOfTasks()
 {
@@ -151,6 +198,7 @@ void TodoList::printHeader()
     printText("6. Hapus Tugas");
     printText("7. Selesaikan Tugas");
     printText("8. Detail Tugas");
+    printText("9. Sort Tugas Berdasarkan Waktu");
     printText("0. Keluar dari Program");
     printBorder('i');
 }
@@ -371,6 +419,7 @@ bool TodoList::editTask()
             printBorder('f');
         }
     }
+    return true;
 }
 
 int TodoList::binarySearch(int target)
@@ -547,6 +596,7 @@ bool TodoList::formAddTask()
     string temp;
     Task task;
     struct tm deadline = {0};
+    struct tm *current = localtime(&currentTime);
 
     printBorder('h');
     printCenter("TAMBAH TUGAS");
@@ -626,6 +676,26 @@ bool TodoList::formAddTask()
     deadline.tm_hour = stoi(temp.substr(9, 2));
     deadline.tm_min = stoi(temp.substr(12, 2));
 
+    if (deadline.tm_mday < 1 || deadline.tm_mday > 31 ||
+        deadline.tm_mon < 0 || deadline.tm_mon > 11 ||
+        deadline.tm_hour < 0 || deadline.tm_hour > 23 ||
+        deadline.tm_min < 0 || deadline.tm_min > 59)
+    {
+        printBorder('h');
+        printText("ERR: Format tenggat tidak valid. Ulangi lagi!");
+        printBorder('f');
+        return formAddTask();
+    }
+    if (deadline.tm_mday < current->tm_mday ||
+        deadline.tm_mon < current->tm_mon ||
+        deadline.tm_year < current->tm_year)
+    {
+        printBorder('h');
+        printText("ERR: Tenggat tidak boleh lebih kecil dari waktu sekarang. Ulangi lagi!");
+        printBorder('f');
+        return formAddTask();
+    }
+
     time_t dlt = mktime(&deadline);
     if (dlt <= currentTime)
     {
@@ -645,11 +715,11 @@ bool TodoList::formAddTask()
 char TodoList::getChoice()
 {
     char choice;
-    printAsk("Pilih menu (0-8): ");
+    printAsk("Pilih menu (0-9): ");
     choice = cin.get();
     cin.ignore();
     printBorder('f');
-    if (choice < '0' || choice > '8')
+    if (choice < '0' || choice > '9')
     {
         printBorder('h');
         printText("Pilihan tidak valid. Silakan coba lagi.");
@@ -715,22 +785,24 @@ bool TodoList::doneTask()
     if (it->isDone)
     {
         printBorder('h');
-        printText("ERR: Tugas sudah selesai. Ulangi lagi!");
+        printText("ERR: Tugas sudah selesfai. Ulangi lagi!");
         printBorder('f');
         return doneTask();
     }
 
     // Detail tugas yg mau dihapus
     printBorder('h');
-    printText("Tugas ditemukan:");
-    printText("ID: " + to_string(it->id));
-    printText("Judul: " + it->title);
-    printText("Deskripsi: " + it->desc);
-    printText("Tenggat: " + getTanggal(it->deadline));
-    printText("Dibuat pada: " + getTanggal(it->createdAt));
+    printCenter("TUGAS DITEMUKAN");
+    printBorder('i', true);
+    printText("ID        : " + to_string(it->id));
+    printText("Judul     : " + it->title);
+    printText("Deskripsi : " + it->desc);
+    printText("Tenggat   : " + getTanggal(it->deadline));
+    printText("Dibuat    : " + getTanggal(it->createdAt));
+    printText("Status    : " + string(it->isDone ? "Selesai" : "Belum Selesai"));
     printBorder('i', true);
     printBorder('i');
-    printText("Yakin ingin menghapus tugas ini? (Y/N)");
+    printText("Yakin ingin menyelesaikan tugas ini? (Y/N)");
     printAsk("Pilihan: ");
     getline(cin, temp);
     printBorder('f', true);
@@ -892,10 +964,9 @@ bool TodoList::findDetailTask()
     }
 
     // Cari id di listTasks
-    auto it = find_if(listTasks.begin(), listTasks.end(), [&](Task &t)
-                      { return t.id == id; });
+    auto it = linearSearch(id);
 
-    if (it == listTasks.end())
+    if (it.id == -1)
     {
         printBorder('h');
         printText("ERR: ID tugas tidak ditemukan. Ulangi lagi!");
@@ -907,41 +978,24 @@ bool TodoList::findDetailTask()
     printBorder('h');
     printText("DETAIL TASK");
     printBorder('i', true);
-    printText("ID        : " + to_string(it->id));
-    printText("Judul     : " + it->title);
-    printText("Deskripsi : " + it->desc);
-    printText("Tenggat   : " + getTanggal(it->deadline));
-    printText("Status    : " + string(it->isDone ? "Selesai" : "Belum Selesai"));
-    printBorder('i', true);
-    printBorder('i');
-    printText("Yakin ingin menghapus tugas ini? (Y/N)");
-    printAsk("Pilihan: ");
-    getline(cin, temp);
-    printBorder('f', true);
+    printText("ID        : " + to_string(it.id));
+    printText("Judul     : " + it.title);
+    printText("Deskripsi : " + it.desc);
+    printText("Tenggat   : " + getTanggal(it.deadline));
+    printText("Dibuat    : " + getTanggal(it.createdAt));
+    printText("Status    : " + string(it.isDone ? "Selesai" : "Belum Selesai"));
+    printBorder('f');
+    return true;
+}
 
-    if (temp == "y" || temp == "Y")
-    {
-        listTasks.erase(it);
-        saveTasks();
-        printBorder('h');
-        printText("Tugas berhasil dihapus.");
-        printBorder('f');
-        return true;
-    }
-    else if (temp == "n" || temp == "N")
-    {
-        printBorder('h');
-        printText("Tugas batal dihapus.");
-        printBorder('f');
-        return true;
-    }
-    else
-    {
-        printBorder('h');
-        printText("ERR: Input tidak valid. Harus 'Y' atau 'N'.");
-        printBorder('f');
-        return findDetailTask();
-    }
+bool TodoList::sortTask()
+{
+    quickSort(listTasks, 0, listTasks.size() - 1);
+    saveTasks();
+    printBorder('h');
+    printText("Tugas berhasil diurutkan.");
+    printBorder('f');
+    return true;
 }
 
 bool TodoList::start()
@@ -981,6 +1035,9 @@ bool TodoList::start()
             break;
         case '8':
             findDetailTask();
+            break;
+        case '9':
+            sortTask();
             break;
         }
 
