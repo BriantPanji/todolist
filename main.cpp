@@ -12,6 +12,13 @@
 // #include <thread>
 // #include <chrono>
 
+#define RESET             "\x1b[0m"
+#define TRED              "\x1b[31m"
+#define TGREEN            "\x1b[32m"
+#define TYELLOW           "\x1b[33m"
+#define TBLUE             "\x1b[34m"
+#define TCYAN             "\x1b[36m"
+
 // karakter: https://www.compart.com/en/unicode/block/U+2500
 
 using namespace std;
@@ -64,9 +71,9 @@ private:
 
     Task linearSearch(int target);
 
-    int partition(vector<Task> &arr, int low, int high);
+    int partition(vector<Task> &arr, int low, int high, bool asc);
 
-    void quickSort(vector<Task> &arr, int low, int high);
+    void quickSort(vector<Task> &arr, int low, int high, bool asc);
 
     time_t currentTime;
 
@@ -105,13 +112,13 @@ Task TodoList::linearSearch(int target)
     return { -1, "", "", };
 }
 
-int TodoList::partition(vector<Task> &arr, int low, int high)
+int TodoList::partition(vector<Task> &arr, int low, int high, bool asc)
 {
     int pivot = arr[high].deadline;
     int i = low - 1;
 
     for (int j = low; j < high; j++) {
-        if (arr[j].deadline < pivot) {
+        if ((asc && arr[j].deadline < pivot) || (!asc && arr[j].deadline > pivot)) {
             i++;
             swap(arr[i], arr[j]);
         }
@@ -122,14 +129,14 @@ int TodoList::partition(vector<Task> &arr, int low, int high)
     return i;
 }
 
-void TodoList::quickSort(vector<Task> &arr, int low, int high)
+void TodoList::quickSort(vector<Task> &arr, int low, int high, bool asc)
 {
    if (high <= low) return;
 
-   int pivotIndex = partition(arr, low, high);
+   int pivotIndex = partition(arr, low, high, asc);
 
-   quickSort(arr, low, pivotIndex-1);
-   quickSort(arr, pivotIndex+1, high);
+   quickSort(arr, low, pivotIndex-1, asc);
+   quickSort(arr, pivotIndex+1, high, asc);
 }
 
 int TodoList::sumOfTasks()
@@ -208,6 +215,7 @@ TodoList::TodoList()
     SetConsoleOutputCP(CP_UTF8);
     cout << left;
     currentTime = time(0);
+    cout << TRED;
     if (!loadTasks())
     {
         cerr << "ERR (TodoList::TodoList): Failed to load tasks.\n";
@@ -215,6 +223,7 @@ TodoList::TodoList()
 }
 TodoList::~TodoList()
 {
+    cout << RESET;
     if (!saveTasks())
     {
         cerr << "ERR (TodoList::~TodoList): Failed to save tasks.\n";
@@ -745,7 +754,7 @@ bool TodoList::doneTask()
     printCenter("Ketik 'x' untuk membatalkan menyelesaikan tugas.");
     printBorder('i', true);
 
-    printText("Masukkan ID tugas yang ingin dihapus.");
+    printText("Masukkan ID tugas.");
     printAsk("ID: ");
     getline(cin, temp);
     printBorder('f');
@@ -790,7 +799,6 @@ bool TodoList::doneTask()
         return doneTask();
     }
 
-    // Detail tugas yg mau dihapus
     printBorder('h');
     printCenter("TUGAS DITEMUKAN");
     printBorder('i', true);
@@ -974,7 +982,6 @@ bool TodoList::findDetailTask()
         return findDetailTask();
     }
 
-    // Detail tugas yg mau dihapus
     printBorder('h');
     printText("DETAIL TASK");
     printBorder('i', true);
@@ -990,11 +997,28 @@ bool TodoList::findDetailTask()
 
 bool TodoList::sortTask()
 {
-    quickSort(listTasks, 0, listTasks.size() - 1);
-    saveTasks();
     printBorder('h');
-    printText("Tugas berhasil diurutkan.");
+    printCenter("SORT TASK");
+    printBorder('i');
+    printText("1. Sort Ascending");
+    printText("2. Sort Descending");
+    printText("3. Batalkan");
+    printBorder('i', true);
+
+    char choice;
+    printAsk("Pilih menu (1-3): ");
+    cin >> choice;
+    cin.ignore();
     printBorder('f');
+
+    if (choice == '1')
+        quickSort(listTasks, 0, listTasks.size() - 1, true);
+    else if (choice == '2')
+        quickSort(listTasks, 0, listTasks.size() - 1, false);
+    else
+        return true;
+
+    saveTasks();
     return true;
 }
 
