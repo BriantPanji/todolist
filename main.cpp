@@ -13,7 +13,8 @@
 // #include <chrono>
 
 #define RESET             "\x1b[0m"
-#define TRED              "\x1b[31m"
+// #define TRED              "\x1b[31m"
+#define TRED              "\033[5m\033[38;2;255;0;0m"
 #define TGREEN            "\x1b[32m"
 #define TYELLOW           "\x1b[33m"
 #define TBLUE             "\x1b[34m"
@@ -33,15 +34,7 @@ struct Task
     time_t createdAt = 0;
 };
 
-// Tambah tugas -> Panji
-// tampilkan semua tugas -> Sutanto
-// tampilkan tugas terlambat -> Sutanto
-// selesaikan tugas -> Andreas
-// tampilkan to-do selesai -> Andreas
-// detail tugas -> Delrico
-// hapus tugas -> Feri
-// edit tugas -> Delrico
-// Exit
+
 
 
 
@@ -93,6 +86,7 @@ public:
 
     bool start();
     bool formAddTask();
+    bool formEditTask();
 
     void printDebug();
 
@@ -215,7 +209,7 @@ TodoList::TodoList()
     SetConsoleOutputCP(CP_UTF8);
     cout << left;
     currentTime = time(0);
-    cout << TRED;
+    cout << TBLUE;
     if (!loadTasks())
     {
         cerr << "ERR (TodoList::TodoList): Failed to load tasks.\n";
@@ -719,6 +713,177 @@ bool TodoList::formAddTask()
     printCenter("Berhasil menambahkan tugas.");
     printBorder('f');
     return addTask(task.title, task.desc, dlt);
+}
+
+bool TodoList::formEditTask()
+{
+    string temp;
+    Task task;
+    struct tm deadline = {0};
+    struct tm *current = localtime(&currentTime);
+    int id;
+
+    printBorder('h');
+    printCenter("EDIT TUGAS");
+    printBorder('i');
+    printCenter("Ketik 'x' untuk membatalkan edit tugas.");
+    printBorder('i', true);
+
+    printText("Masukkan ID tugas.");
+    printAsk("ID: ");
+    getline(cin, temp);
+    printBorder('f');
+
+    // Validasi x
+    if (temp == "x" || temp == "X")
+    {
+        printBorder('h');
+        printText("Batal mengedit tugas.");
+        printBorder('f');
+        return true;
+    }
+    // Validasi ID dalam bentuk angka
+    try
+    {
+        id = stoi(temp);
+    }
+    catch (...)
+    {
+        printBorder('h');
+        printText("ERR: ID tidak valid, harus berupa angka. Ulangi lagi!");
+        printBorder('f');
+        return doneTask();
+    }
+
+    // Cari id di listTasks
+    auto it = find_if(listTasks.begin(), listTasks.end(), [&](Task &t)
+                      { return t.id == id; });
+
+    if (it == listTasks.end())
+    {
+        printBorder('h');
+        printText("ERR: ID tugas tidak ditemukan. Ulangi lagi!");
+        printBorder('f');
+        return doneTask();
+    }
+
+    printBorder('h');
+    printCenter("TUGAS DITEMUKAN");
+    printBorder('i', true);
+    printText("ID        : " + to_string(it->id));
+    printText("Judul     : " + it->title);
+    printText("Deskripsi : " + it->desc);
+    printText("Tenggat   : " + getTanggal(it->deadline));
+    printText("Dibuat    : " + getTanggal(it->createdAt));
+    printText("Status    : " + string(it->isDone ? "Selesai" : "Belum Selesai"));
+    printBorder('i', true);
+
+    printText("Masukkan judul tugas, maksimal 35");
+    printAsk("Judul: ");
+    getline(cin, temp);
+    printBorder('i', true);
+    if (temp.empty())
+    {
+        printBorder('h');
+        printText("ERR: Judul tidak boleh kosong. Ulangi lagi!");
+        printBorder('f');
+        return formEditTask();
+    }
+    if (temp == "x" || temp == "X")
+    {
+        printBorder('h');
+        printText("Batal menambah tugas.");
+        printBorder('f');
+        return true;
+    }
+    task.title = truncStr(temp, 35);
+
+    printText("Masukkan deskripsi tugas, maksimal 256");
+    printAsk("Deskripsi: ");
+    getline(cin, temp);
+    printBorder('i', true);
+    if (temp.empty())
+    {
+        printBorder('h');
+        printText("ERR: Deskripsi tidak boleh kosong. Ulangi lagi!");
+        printBorder('f');
+        return formEditTask();
+    }
+    if (temp == "x" || temp == "X")
+    {
+        printBorder('h');
+        printText("Batal menambah tugas.");
+        printBorder('f');
+        return true;
+    }
+    task.desc = truncStr(temp, 256);
+    temp.clear();
+
+    printText("Masukkan tenggat tugas, format: dd/mm/yy hh:mm");
+    printAsk("Tenggat: ");
+    getline(cin, temp);
+    if (temp.empty())
+    {
+        printBorder('h');
+        printText("ERR: Tenggat tidak boleh kosong. Ulangi lagi!");
+        printBorder('f');
+        return formEditTask();
+    }
+    if (temp == "x" || temp == "X")
+    {
+        printBorder('h');
+        printText("Batal menambah tugas.");
+        printBorder('f');
+        return true;
+    }
+    if (temp.length() < 14)
+    {
+        printBorder('h');
+        printText("ERR: Format tenggat tidak valid. Ulangi lagi!");
+        printBorder('f');
+        return formEditTask();
+    }
+
+    deadline.tm_mday = stoi(temp.substr(0, 2));
+    deadline.tm_mon = stoi(temp.substr(3, 2)) - 1;
+    deadline.tm_year = stoi("20" + temp.substr(6, 2)) - 1900;
+    deadline.tm_hour = stoi(temp.substr(9, 2));
+    deadline.tm_min = stoi(temp.substr(12, 2));
+
+    if (deadline.tm_mday < 1 || deadline.tm_mday > 31 ||
+        deadline.tm_mon < 0 || deadline.tm_mon > 11 ||
+        deadline.tm_hour < 0 || deadline.tm_hour > 23 ||
+        deadline.tm_min < 0 || deadline.tm_min > 59)
+    {
+        printBorder('h');
+        printText("ERR: Format tenggat tidak valid. Ulangi lagi!");
+        printBorder('f');
+        return formEditTask();
+    }
+    if (deadline.tm_mday < current->tm_mday ||
+        deadline.tm_mon < current->tm_mon ||
+        deadline.tm_year < current->tm_year)
+    {
+        printBorder('h');
+        printText("ERR: Tenggat tidak boleh lebih kecil dari waktu sekarang. Ulangi lagi!");
+        printBorder('f');
+        return formEditTask();
+    }
+
+    time_t dlt = mktime(&deadline);
+    if (dlt <= currentTime)
+    {
+        printBorder('h');
+        printText("ERR: Tenggat tidak boleh lebih kecil dari waktu sekarang. Ulangi lagi!");
+        printBorder('f');
+        return formEditTask();
+    }
+
+    printBorder('i');
+
+    printCenter("Berhasil mengedit tugas.");
+    printBorder('f');
+    return saveTasks();
 }
 
 char TodoList::getChoice()
